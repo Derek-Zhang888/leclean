@@ -1,0 +1,27 @@
+# 构建产物
+dist/
+dist_onefile/
+build/
+*.pyc
+__pycache__/
+*.pyd
+*.spec
+
+# 运行时数据（快照 / 报告 / 配置 / 白名单 / 日志 / 提示音）
+data/
+
+# 项目开发日志（含内部过程与教训，不公开）
+.workbuddy/
+
+# 预览数据（由 tools/make_mock.py 生成，含本机真实数据，不提交）
+app/web/mock.js
+
+# WizTree 引擎（许可仅限个人使用，不随仓库分发）
+**/WizTree/
+WizTree*.exe
+
+# 系统 / 编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

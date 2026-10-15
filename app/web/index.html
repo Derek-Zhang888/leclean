@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>乐清理</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">乐</span>
+      <div>
+        <div class="brand-title" id="brandTitle">乐清理</div>
+        <div class="brand-sub" id="brandSub">便携版 · 只读扫描 · 回收站可恢复</div>
+      </div>
+    </div>
+    <div class="topmeta" id="topMeta">
+      <span class="chip" id="chipEngine">引擎检测中…</span>
+      <span class="chip" id="chipAdmin">权限检测中…</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav id="nav">
+        <button class="navbtn active" data-view="scan">
+          <b>1</b><span>扫描模块</span>
+        </button>
+        <button class="navbtn locked" data-view="clean">
+          <b>2</b><span>清理模块</span>
+        </button>
+        <div class="navgroup">专项分析</div>
+        <button class="navbtn locked" data-view="software"><b>·</b><span>已装软件清单</span></button>
+        <button class="navbtn locked" data-view="diff"><b>·</b><span>快照对比</span></button>
+        <div class="navgroup">其它</div>
+        <button class="navbtn" data-view="settings"><b>·</b><span>设置</span></button>
+        <button class="navbtn" data-view="about"><b>·</b><span>关于作者</span></button>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="minicard" id="spaceCard">读取磁盘信息…</div>
+      </div>
+    </aside>
+
+    <main id="main">
+
+      <!-- ============ 扫描模块 ============ -->
+      <section class="view active" id="view-scan">
+        <div class="viewhead">
+          <h1>扫描模块</h1>
+          <p class="muted">自动枚举本机全部分区与物理磁盘，扫描每个盘的顶层母文件夹，统计大小、判定来源、核对注册表关联、给出删除风险等级。全程只读，不做任何修改。</p>
+        </div>
+
+        <div class="panel">
+          <div class="row spread">
+            <div class="row" id="drivePick"></div>
+            <div class="row">
+              <button class="btn sm" id="btnPickAllVol">全选</button>
+              <button class="btn sm" id="btnPickNoneVol">全不选</button>
+              <button class="btn sm" id="btnRescanVol" title="插拔 U 盘后重新枚举磁盘">刷新磁盘</button>
+              <label class="switch">
+                <input type="checkbox" id="deepScan">
+                <span>深度扫描</span>
+              </label>
+              <button class="btn" id="btnCancelScan" hidden>取消扫描</button>
+              <button class="btn primary" id="btnScan">开始扫描</button>
+            </div>
+          </div>
+          <div class="diskinfo" id="diskSummary"></div>
+          <div class="progresswrap" id="progressWrap" hidden>
+            <div class="progress"><div class="bar" id="progressBar"></div></div>
+            <div class="progresstext" id="progressText">准备中…</div>
+          </div>
+        </div>
+
+        <div id="scanSummary" class="cards"></div>
+
+        <div class="panel" id="scanResultPanel" hidden>
+          <div class="row spread">
+            <div class="row">
+              <strong id="resultTitle">扫描结果</strong>
+              <span class="muted" id="resultCount"></span>
+            </div>
+            <div class="row">
+              <input class="search" id="scanSearch" placeholder="按名称或路径筛选…">
+              <select id="scanSourceFilter">
+                <option value="">全部来源</option>
+                <option value="system">系统内置</option>
+                <option value="software">软件安装</option>
+                <option value="user">用户创建</option>
+                <option value="residual">系统残留</option>
+                <option value="unknown">未知</option>
+              </select>
+              <select id="scanTierFilter">
+                <option value="">全部风险</option>
+                <option value="4">⛔ 禁删</option>
+                <option value="3">🔴 高风险</option>
+                <option value="2">🟡 中风险</option>
+                <option value="1">🟢 低风险</option>
+              </select>
+              <button class="btn" id="btnExportCsv">导出 CSV</button>
+              <button class="btn primary" id="btnToClean">进入清理模块 →</button>
+            </div>
+          </div>
+          <div class="row" id="driveTabs" style="margin:12px 0 0"></div>
+          <div class="tablewrap" style="margin-top:10px">
+            <table class="grid" id="scanTable">
+              <thead>
+                <tr>
+                  <th class="sortable" data-sort="name">母文件夹</th>
+                  <th class="sortable num" data-sort="size">大小</th>
+                  <th>占比</th>
+                  <th class="sortable" data-sort="mtime">修改日期</th>
+                  <th>来源</th>
+                  <th>注册表关联</th>
+                  <th class="sortable" data-sort="tier">删除风险</th>
+                  <th>判定依据</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 清理模块 ============ -->
+      <section class="view" id="view-clean">
+        <div class="viewhead">
+          <h1>清理模块</h1>
+          <p class="muted">按风险分组勾选后一键清理。删除走系统回收站，可随时还原；⛔ 禁删项与白名单项目无法勾选。任意一行可右键「查看谁占用 / 解除占用」。</p>
+        </div>
+
+        <div class="panel stickybar">
+          <div class="row spread">
+            <div class="row">
+              <label class="switch"><input type="checkbox" id="pickAll"><span>全选可清理项（不含中/高风险）</span></label>
+              <span class="muted" id="pickInfo">已选 0 项 / 0 B</span>
+            </div>
+            <div class="row">
+              <button class="btn" id="btnRefreshGroups">刷新分组</button>
+              <button class="btn" id="btnCancelClean" hidden>取消清理</button>
+              <button class="btn danger" id="btnClean">一键清理（移入回收站）</button>
+            </div>
+          </div>
+          <div class="progresswrap" id="cleanProgressWrap" hidden style="margin-top:12px">
+            <div class="progress"><div class="bar" id="cleanProgressBar"></div></div>
+            <div class="progresstext" id="cleanProgressText">准备清理…</div>
+          </div>
+        </div>
+
+        <div class="row" id="driveTabsClean" style="margin:0 0 12px"></div>
+        <div id="groupList"></div>
+      </section>
+
+      <!-- ============ 已装软件 ============ -->
+      <section class="view" id="view-software">
+        <div class="viewhead">
+          <h1>已装软件清单</h1>
+          <p class="muted">来自注册表 4 个 Uninstall 键 + App Paths。可查看安装目录与占用，风险项应走正规卸载。</p>
+        </div>
+        <div class="panel">
+          <div class="row spread">
+            <span class="muted" id="swInfo">尚未读取</span>
+            <div class="row">
+              <div class="seg" id="swFilter">
+                <button class="segbtn active" data-sw-filter="all">全部</button>
+                <button class="segbtn" data-sw-filter="app">应用</button>
+                <button class="segbtn" data-sw-filter="system">系统组件</button>
+              </div>
+              <input class="search" id="swSearch" placeholder="筛选软件名 / 发行商…">
+              <button class="btn primary" id="btnSoftware">读取软件清单</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel" id="orphanPanel" hidden>
+          <h3 class="sub">注册表孤儿项（登记了安装目录，但目录已不存在）</h3>
+          <div class="tablewrap"><table class="grid" id="orphanTable">
+            <thead><tr><th>软件</th><th>发行商</th><th>失效路径</th><th>卸载命令</th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+        </div>
+        <div class="panel"><div class="tablewrap">
+          <table class="grid" id="swTable">
+            <thead><tr>
+              <th class="sortable" data-sw-sort="name">软件名称</th>
+              <th>版本</th>
+              <th>发行商</th>
+              <th class="sortable num" data-sw-sort="size">占用</th>
+              <th class="sortable" data-sw-sort="date">安装时间</th>
+              <th>安装目录</th>
+              <th>来源</th>
+              <th>操作</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div></div>
+      </section>
+
+      <!-- ============ 快照对比 ============ -->
+      <section class="view" id="view-diff">
+        <div class="viewhead">
+          <h1>快照对比</h1>
+          <p class="muted">每次扫描都会留一份快照。这里对比“上次 vs 本次”，帮你抓出偷偷长大的目录。</p>
+        </div>
+        <div id="diffBody"></div>
+      </section>
+
+      <!-- ============ 设置 ============ -->
+      <section class="view" id="view-settings">
+        <div class="viewhead">
+          <h1>设置 / 白名单</h1>
+        </div>
+        <div class="panel">
+          <h3 class="sub">扫描引擎</h3>
+          <div class="row">
+            <input class="wide" id="wiztreePath" placeholder="WizTree64.exe 完整路径（留空自动探测）">
+            <button class="btn" id="btnLocate">自动探测</button>
+            <button class="btn" id="btnSaveCfg">保存</button>
+          </div>
+          <p class="muted small">支持：程序同目录 / WizTree 子目录 / PATH / 注册表安装位置 / 常见路径。也可用环境变量 WIZTREE_PATH 指定。</p>
+          <h3 class="sub" style="margin-top:18px">白名单（永不进入清理候选）</h3>
+          <div class="row">
+            <input class="wide" id="wlInput" placeholder="输入目录完整路径，例如 D:\我的资料">
+            <button class="btn" id="btnAddWl">加入白名单</button>
+          </div>
+          <div id="wlList" class="wllist"></div>
+          <h3 class="sub" style="margin-top:18px">关闭窗口时</h3>
+          <div class="row">
+            <select id="closeActionSel">
+              <option value="ask">每次都询问我</option>
+              <option value="tray">最小化到系统托盘</option>
+              <option value="exit">直接退出程序</option>
+            </select>
+            <span class="muted small" id="trayState"></span>
+          </div>
+          <p class="muted small">
+            点窗口右上角的「✕」时按这里的设置处理（选「每次都询问」会弹框问你是否以后都最小化到托盘）。<br>
+            窗口的「—」最小化按钮<b>始终是缩到任务栏</b>，不受这里影响。
+          </p>
+
+          <h3 class="sub" style="margin-top:18px">提示音</h3>
+          <div class="row">
+            <label class="switch">
+              <input type="checkbox" id="soundToggle">
+              <span>启用操作提示音（开始 / 结束扫描、开始 / 结束清理）</span>
+            </label>
+            <span class="muted small" id="soundState"></span>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <span class="muted small">试听：</span>
+            <button class="btn sm" data-tone="start_scan">开始扫描</button>
+            <button class="btn sm" data-tone="end_scan">扫描结束</button>
+            <button class="btn sm" data-tone="start_clean">开始清理</button>
+            <button class="btn sm" data-tone="end_clean">清理结束</button>
+            <button class="btn sm" data-tone="warn">警告</button>
+            <button class="btn sm" data-tone="error">出错</button>
+          </div>
+
+          <h3 class="sub" style="margin-top:18px">运行日志</h3>
+          <pre class="logbox" id="logBox"></pre>
+        </div>
+      </section>
+
+      <!-- ============ 关于作者 ============ -->
+      <section class="view" id="view-about">
+        <div class="viewhead">
+          <h1>关于作者</h1>
+          <p class="muted">关于这个程序、以及做它的人。</p>
+        </div>
+        <div id="aboutBody"></div>
+      </section>
+
+    </main>
+  </div>
+
+  <div id="ctxMenu" class="ctxmenu" hidden></div>
+  <div id="toast" class="toast" hidden></div>
+
+  <div class="modal" id="lockModal" hidden>
+    <div class="modalbox wide">
+      <h3>文件占用诊断</h3>
+      <div id="lockPath" class="mono small muted" style="word-break:break-all;margin-bottom:12px"></div>
+      <div id="lockBody"></div>
+      <div class="row end">
+        <button class="btn" id="lockClose">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="closeModal" hidden>
+    <div class="modalbox">
+      <h3>关闭窗口</h3>
+      <div id="closeBody"></div>
+      <label class="switch remember">
+        <input type="checkbox" id="closeRemember">
+        <span>以后都这样，不再询问</span>
+      </label>
+      <div class="row end">
+        <button class="btn" id="closeCancel">取消</button>
+        <button class="btn" id="closeQuit">直接退出</button>
+        <button class="btn primary" id="closeTray">最小化到托盘</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal" hidden>
+    <div class="modalbox">
+      <h3 id="modalTitle">确认</h3>
+      <div id="modalBody" class="modalbody"></div>
+      <div class="row end">
+        <button class="btn" id="modalCancel">取消</button>
+        <button class="btn danger" id="modalOk">确认执行</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+if (location.search.indexOf('preview') >= 0) {
+  document.write('<script src="mock.js"><\/script><script src="mock-stub.js"><\/script>');
+}
+</script>
+<script src="app.js"></script>
+</body>
+</html>
