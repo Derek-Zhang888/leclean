@@ -26,7 +26,7 @@ AUTHOR = {
     "repos": 1,
 }
 # 仓库地址：上传到 GitHub 之后填这里（留空则界面只显示主页链接）
-REPO_URL = ""
+REPO_URL = "https://github.com/Derek-Zhang888/leclean"
 
 DRIVES = ["C:", "D:"]
 
